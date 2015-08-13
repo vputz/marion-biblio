@@ -1,0 +1,7 @@
+*.pyc
+*~
+*.msg
+marion_biblio.egg-info
+.tox
+build
+dist
