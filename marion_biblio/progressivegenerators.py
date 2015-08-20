@@ -1,8 +1,11 @@
 """
 Progress reporting as generator
 """
-from queue import Queue
+from gevent import sleep
+from gevent.queue import Queue
 
+# value to test when the report is complete
+PROGRESS_COMPLETE = "progress_complete"
 
 def funcProgressGenerator(gen, lengthHint, reportFunc):
     """
@@ -18,6 +21,7 @@ def funcProgressGenerator(gen, lengthHint, reportFunc):
         step = step+1
         reportFunc(step, lengthHint)
         yield item
+    reportFunc(PROGRESS_COMPLETE, lengthHint)
 
 
 class NullProgressReporter:
@@ -53,6 +57,7 @@ class QueueReporter:
 
     def reportProgress(self, step):
         self.queue.put((step, self.length_hint))
+        sleep(0)
 
 
 def reporterProgressGenerator(gen, reporter):
@@ -62,3 +67,4 @@ def reporterProgressGenerator(gen, reporter):
         step = step+1
         reporter.reportProgress(step)
         yield item
+    reporter.reportProgress(PROGRESS_COMPLETE)

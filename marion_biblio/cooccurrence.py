@@ -36,7 +36,7 @@ def prune_columns(O, row_labels, column_labels, cutoff=1):
     # now trim rows which no longer have entries
     v = O2.sum(1)
     rows = (v > 0)
-
+    print("{0}x{1} -> {2}x{3}".format( O.shape[0], O.shape[1], len(rows), len(cols)))
     return O2[rows,:], list(array(row_labels)[rows]), list(array(column_labels)[cols])
     #return O[rows,cols], array(row_labels)[rows], array(column_labels)[cols]
 

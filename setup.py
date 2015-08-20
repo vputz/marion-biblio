@@ -33,6 +33,8 @@ setup(
 
     install_requires=[
         'numpy==1.9.2',
+        'networkx==1.10',
+        'mechanize==0.2.5',
         'tables==3.2.1',
         'pytest-bdd==2.14.4',
         'scipy==0.16.0',

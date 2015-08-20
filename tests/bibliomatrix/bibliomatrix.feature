@@ -32,4 +32,7 @@ Scenario: test transposition
   And its transpose
   Then check transpose is correct
 
-
+Scenario: test cooccurrence nx
+  Given a sample occurrence matrix
+  And calculate its simple cooccurrence
+  Then check cooccurrence nx is correct

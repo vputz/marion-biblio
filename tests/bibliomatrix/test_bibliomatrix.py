@@ -3,7 +3,7 @@ from marion_biblio.bibliomatrix import OccurrenceMatrix, CooccurrenceType
 import numpy
 from pyrsistent import pvector
 from marion_biblio.pyrsistent_helpers import pv_remove
-
+import networkx as nx
 
 @scenario('bibliomatrix.feature', 'test pvector2 deletion')
 def test_pvector2_deletion():
@@ -30,8 +30,8 @@ def test_column_prune_bibliomatrix():
 def sample_occurrence_matrix():
     result = OccurrenceMatrix(
         numpy.array([[1, 1, 0, 1],
-                     [1, 1, 1, 0],
-                     [0, 0, 0, 1]]),
+                     [0, 0, 0, 1],
+                     [1, 1, 1, 0]]),
         ["paper_a", "paper_b", "paper_c"],
         ["author_a", "author_b", "author_c", "author_d"])
     return result
@@ -47,6 +47,8 @@ def check_column_pruned_matrix(sample_occurrence_matrix,
                                column_pruned_occurrence_matrix):
     sm = sample_occurrence_matrix
     cp = column_pruned_occurrence_matrix
+    print(sm)
+    print(sm.column_pruned(1))
     print(cp)
     assert cp.is_consistent
     assert cp.rows == \
@@ -56,8 +58,8 @@ def check_column_pruned_matrix(sample_occurrence_matrix,
     print(cp)
     assert (cp.matrix ==
             numpy.array([[1, 1, 1],
-                         [1, 1, 0],
-                         [0, 0, 1]])).all()
+                         [0, 0, 1],
+                         [1, 1, 0]])).all()
 
 
 @scenario('bibliomatrix.feature', 'row-prune a bibliomatrix')
@@ -78,7 +80,7 @@ def check_row_pruned_matrix(sample_occurrence_matrix,
     print(rp)
     assert rp.is_consistent
     assert rp.columns == sm.columns
-    assert rp.rows == sm.rows.delete(sm.rows.index('paper_c'))
+    assert rp.rows == sm.rows.delete(sm.rows.index('paper_b'))
     assert numpy.allclose(rp.matrix,
                           numpy.array([[1, 1, 0, 1],
                                        [1, 1, 1, 0]]))
@@ -104,10 +106,10 @@ def check_transpose(sample_occurrence_matrix, sample_transposition):
     print(st)
     assert numpy.allclose(st.matrix,
                           numpy.array(
-                              [[1, 1, 0],
-                               [1, 1, 0],
-                               [0, 1, 0],
-                               [1, 0, 1]]))
+                              [[1, 0, 1],
+                               [1, 0, 1],
+                               [0, 0, 1],
+                               [1, 1, 0]]))
 
 
 @scenario('bibliomatrix.feature', 'test cooccurrence calculations')
@@ -188,3 +190,16 @@ def check_inclusion_index(sample_occurrence_matrix,
                                        [1, 0, 1, 0.5],
                                        [1, 1, 0, 0],
                                        [0.5, 0.5, 0, 0]]))
+
+
+@scenario('bibliomatrix.feature', 'test cooccurrence nx')
+def test_cooccurrence_nx():
+    pass
+
+
+@then('check cooccurrence nx is correct')
+def check_cooccurrence_nx(simple_cooccurrence_matrix):
+    g = simple_cooccurrence_matrix.as_nx_graph()
+    assert sorted(g.nodes()) == sorted(simple_cooccurrence_matrix.columns)
+    reversem = nx.to_numpy_matrix(g, simple_cooccurrence_matrix.rows)
+    assert numpy.allclose(simple_cooccurrence_matrix.matrix, reversem)

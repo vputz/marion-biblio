@@ -4,13 +4,13 @@ from marion_biblio.cooccurrence import prune_rows, prune_columns, \
 from pyrsistent import pvector
 from enum import Enum
 import numpy
-
-
+from abc import ABCMeta, abstractmethod
+import networkx as nx
 
 
 
 class BiblioMatrix:
-
+    __metaclass__ = ABCMeta
     """
     An augmented matrix class which stores the matrix itself and then
     identifiers (strings) for rows and columns, so that it is possible
@@ -19,7 +19,14 @@ class BiblioMatrix:
     """
 
     def __init__(self, mat, rows, cols):
-        self._matrix = mat
+        target_type = {numpy.dtype('int8'): numpy.dtype('int64'),
+                       numpy.dtype('int16'): numpy.dtype('int64'),
+                       numpy.dtype('int32'): numpy.dtype('int64'),
+                       numpy.dtype('int64'): numpy.dtype('int64'),
+                       numpy.dtype('float16'): numpy.dtype('float32'),
+                       numpy.dtype('float32'): numpy.dtype('float32'),
+                       numpy.dtype('float64'): numpy.dtype('float64')}
+        self._matrix = mat.astype(target_type[mat.dtype])
         self._rows = pvector(rows)
         self._columns = pvector(cols)
 
@@ -41,7 +48,9 @@ class BiblioMatrix:
             and (len(self._columns) == self._matrix.shape[1])
 
     def __str__(self):
-        return "\n".join(["Matrix:",
+        return "\n".join(["{0}x{1} {2}:".format(self.matrix.shape[0],
+                                                self.matrix.shape[1],
+                                                self.__class__.__name__),
                           repr(self.matrix),
                           "Rows:",
                           repr(self.rows),
@@ -60,6 +69,10 @@ class BiblioMatrix:
 
     def transposed(self):
         return type(self)(self.matrix.T, self.columns, self.rows)
+
+    @abstractmethod
+    def as_nx_graph(self):
+        pass
 
 
 class CooccurrenceType(Enum):
@@ -93,8 +106,12 @@ class OccurrenceMatrix(BiblioMatrix):
                   CooccurrenceType.association_index: association_index_cooccurrence_matrix,
                   CooccurrenceType.inclusion_index: inclusion_index_cooccurrence_matrix}
         o = lookup[cooccurrence_type](self.matrix)
-        return CooccurrenceMatrix(o + o.T, self.columns, 
+        return CooccurrenceMatrix(o + o.T, self.columns,
                                   self.columns, cooccurrence_type)
+
+    def as_nx_graph(self):
+        # return a bipartite graph
+        return None
 
 
 class CooccurrenceMatrix(BiblioMatrix):
@@ -128,3 +145,14 @@ class CooccurrenceMatrix(BiblioMatrix):
     @property
     def cooccurrence_type(self):
         return self._cooccurrence_type
+
+    def as_nx_graph(self):
+        result = nx.from_numpy_matrix(self.matrix)
+        relabel_dict = dict(zip(numpy.arange(len(result.nodes())),
+                                self.rows))
+        nx.relabel_nodes(result,
+                         dict(zip(
+                             numpy.arange(len(result.nodes())),
+                             self.rows)),
+                         False) # relabel in place
+        return result
