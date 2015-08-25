@@ -38,7 +38,8 @@ setup(
         'tables==3.2.1',
         'pytest-bdd==2.14.4',
         'scipy==0.16.0',
-        'pandas==0.16.2'
+        'pandas==0.16.2',
+        'pyrsistent-0.11.0'
     ],
 
     extras_require={},

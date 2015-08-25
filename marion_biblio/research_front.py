@@ -1,6 +1,7 @@
 from numpy import sort, zeros, int8
 from marion_biblio.bibliomatrix import OccurrenceMatrix
 
+# one reference: http://archive.sciencewatch.com/about/met/rf-methodology/
 
 def sindices(a, b):
     """assumes a is sorted; returns indices (in a) of items in b which are

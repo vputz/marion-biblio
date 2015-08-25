@@ -371,68 +371,96 @@ def make_pytable(w, filename, title="test",
                  progressReporter=progressivegenerators.NPG):
     """parses the wos reader and converts everything
     into an HDF5 pytable for faster access"""
-    h5file = tables.open_file(filename, mode='w', title=title)
-    table = h5file.create_table(
-        h5file.root, 'papers', Paper, 'WOS paper records')
-    authors = h5file.create_vlarray(h5file.root, 'authors',
-                                    tables.StringAtom(40))
-    addresses = h5file.create_vlarray(
-        h5file.root, 'addresses', tables.StringAtom(60))
-    countries = h5file.create_vlarray(h5file.root, 'countries',
-                                      tables.StringAtom(30))
-    cited_papers = h5file.create_vlarray(h5file.root, 'cited_papers',
-                                         tables.StringAtom(50))
-    abstracts = h5file.create_vlarray(h5file.root, 'abstracts',
-                                      tables.VLStringAtom())
-    categories = h5file.create_vlarray(h5file.root, 'categories',
-                                       tables.StringAtom(40))
-    authortable = h5file.create_table(h5file.root, 'authortable',
-                                      Author, "WOS Author data")
+    def create_skeleton(filename):
+        h5file = tables.open_file(filename, mode='w', title=title)
+        table = h5file.create_table(
+            h5file.root, 'papers', Paper, 'WOS paper records')
+        authors = h5file.create_vlarray(h5file.root, 'authors',
+                                        tables.StringAtom(40))
+        addresses = h5file.create_vlarray(
+            h5file.root, 'addresses', tables.StringAtom(60))
+        countries = h5file.create_vlarray(h5file.root, 'countries',
+                                          tables.StringAtom(30))
+        cited_papers = h5file.create_vlarray(h5file.root, 'cited_papers',
+                                             tables.StringAtom(50))
+        abstracts = h5file.create_vlarray(h5file.root, 'abstracts',
+                                          tables.VLStringAtom())
+        categories = h5file.create_vlarray(h5file.root, 'categories',
+                                           tables.StringAtom(40))
+        authortable = h5file.create_table(h5file.root, 'authortable',
+                                          Author, "WOS Author data")
+        return h5file
+
+    def append_paper(h5file, index, paper_entry):
+        result = h5file.root.papers.row
+        result['index'] = index
+        result['doi'] = paper_entry['DI']
+        result['title'] = paper_entry['TI']
+        result['journal'] = paper_entry['J9']
+        result['pubdate'] = paper_entry['PD']
+        result['pubyear'] = int(paper_entry['PY']) if paper_entry['PY'].isdigit() else -1
+        result.append()
+
+    def append_authors(h5file, paper_entry):
+        h5file.root.authors.append(authorlist_from_authorfield(paper_entry['AU']))
+
+    def is_valid_paper_entry(paper_entry):
+        fields = 'DI TI J9 PD PY AU AF C1 AB'.split()
+        return False not in [paper_entry[f] is not None for f in fields] \
+            and paper_entry['DI'] != 'DI'
+
+    def append_categories(h5file, paper_entry):
+        try:
+            h5file.root.categories.append(authorlist_from_authorfield(paper_entry['WC']))
+        except AttributeError as e:
+            print(paper_entry['WC'])
+            print(paper_entry)
+            raise(e)
+
+    def append_to_authortable(h5file, paper_index, paper_entry):
+        # now if each author is not already in the table,
+        # add to the author table
+        aulist = authorlist_from_authorfield(paper_entry['AU'])
+        aflist = authorlist_from_authorfield(paper_entry['AF'])
+        if len(aulist) != len(aflist):
+            print("ERROR, AUTHOR LISTS DIFFERENT LENGTH")
+            return
+        addir = dict_from_addresses(paper_entry['C1'])
+        for author, address in zip(aulist, aflist):
+            # print matches
+            newauthor = h5.root.authortable.row
+            newauthor['author'] = author
+            if address in addir:
+                newauthor['address'] = address
+            newauthor['paper_index'] = paper_index
+            newauthor.append()
+            h5file.root.authortable.flush()
+        h5file.root.countries.append(countrylist_from_addresses(p['C1']))
+        h5file.root.cited_papers.append(cited_dois(p))
+        h5file.root.abstracts.append(p['AB'])
+
+    def flush_tables(h5file):
+        h5file.root.papers.flush()
+        h5file.root.authortable.flush()
+        h5file.root.authortable.cols.author.create_index()
+        h5file.root.authortable.cols.paper_index.create_index()
+        h5file.root.authortable.flush()
+        
+    h5 = create_skeleton(filename)
+
     index = 0
     for p in progressivegenerators.reporterProgressGenerator(
             w.reader(), progressReporter):
-        if p['DI'] == 'DI':
-            continue
-        paper = table.row
-        paper['index'] = index
-        paper['doi'] = p['DI']
-        paper['title'] = p['TI']
-        paper['journal'] = p['J9']
-        paper['pubdate'] = p['PD']
-        paper['pubyear'] = int(p['PY']) if p['PY'].isdigit() else -1
-        paper.append()
 
-        authors.append(authorlist_from_authorfield(p['AU']))
-        categories.append(authorlist_from_authorfield(p['WC']))
-        # now if each author is not already in the table,
-        # add to the author table
-        aulist = authorlist_from_authorfield(p['AU'])
-        aflist = authorlist_from_authorfield(p['AF'])
-        if len(aulist) != len(aflist):
-            print("ERROR, AUTHOR LISTS DIFFERENT LENGTH")
-            continue
-        adddir = dict_from_addresses(p['C1'])
-        for i in range(len(aulist)):
-            a = aulist[i]
-            # print matches
-            newauthor = authortable.row
-            newauthor['author'] = a
-            if aflist[i] in adddir:
-                newauthor['address'] = adddir[aflist[i]]
-            newauthor['paper_index'] = index
-            newauthor.append()
-            authortable.flush()
-        countries.append(countrylist_from_addresses(p['C1']))
-        cited_papers.append(cited_dois(p))
-        abstracts.append(p['AB'])
-        index = index + 1
+        if is_valid_paper_entry(p):
+            append_paper(h5, index, p)
+            append_authors(h5, p)
+            append_categories(h5, p)
+            append_to_authortable(h5, index, p)
+            index = index + 1
 
-    table.flush()
-    authortable.flush()
-    authortable.cols.author.create_index()
-    authortable.cols.paper_index.create_index()
-    authortable.flush()
-    h5file.close()
+    flush_tables(h5)
+    h5.close()
 
 
 class Wos_h5_reader():
