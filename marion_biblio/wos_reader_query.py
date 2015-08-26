@@ -1,5 +1,6 @@
 from marion_biblio.wos_reader import open_wos_h5, Wos_h5_reader, \
 country_from_address
+from marion_biblio.research_front import basic_research_front_from_w5
 from collections import Counter
 import json
 import unittest
@@ -38,9 +39,14 @@ def resultFromQuery(w5, q, context):
             thisResult = paperHexbinQuery(w5, context['paperLocationFunc'])
         elif v['queryType'] == 'countryCollaborationQuery':
             thisResult = countryCollaborationQuery(w5)
+        elif v['queryType'] == 'researchFrontQuery' :
+            thisResult = researchFrontQuery(w5)
         result[k] = thisResult
     return result
 
+def researchFrontQuery(w5):
+    result = basic_research_front_from_w5(w5)
+    return result
 
 # queries return objects, not JSON (the "result" is a JSON string)
 def countryIndex(w5):

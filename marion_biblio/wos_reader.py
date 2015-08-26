@@ -430,8 +430,7 @@ def make_pytable(w, filename, title="test",
             # print matches
             newauthor = h5.root.authortable.row
             newauthor['author'] = author
-            if address in addir:
-                newauthor['address'] = address
+            newauthor['address'] = addir.get(address, "Not found")
             newauthor['paper_index'] = paper_index
             newauthor.append()
             h5file.root.authortable.flush()

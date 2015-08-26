@@ -6,7 +6,7 @@ from enum import Enum
 import numpy
 from abc import ABCMeta, abstractmethod
 import networkx as nx
-
+import igraph
 
 
 class BiblioMatrix:
@@ -67,12 +67,28 @@ class BiblioMatrix:
                                       cutoff=cutoff)
         return type(self)(o, rows, cols)
 
+    def column_pruned_to_top_fraction_of_occurrences(self, fraction=0.1, max_columns=20):
+        v = numpy.sort(self.matrix.sum(0))
+        v = v[::-1]
+        total = v.sum()
+        target_occurrences = total*fraction
+    
+        acc = 0
+        index = 0
+        while acc < target_occurrences:
+            acc = acc + v[index]
+            index=index+1
+        index = min(index, max_columns)
+        # now prune everything with occurrences less than v[index]
+        return self.column_pruned(v[index])
+
+    def zeroed_if_less_than(self, value):
+        m = self.matrix.copy()
+        m[m < value] = 0
+        return type(self)(m, self.columns, self.rows)
+
     def transposed(self):
         return type(self)(self.matrix.T, self.columns, self.rows)
-
-    @abstractmethod
-    def as_nx_graph(self):
-        pass
 
 
 class CooccurrenceType(Enum):
@@ -109,9 +125,6 @@ class OccurrenceMatrix(BiblioMatrix):
         return CooccurrenceMatrix(o + o.T, self.columns,
                                   self.columns, cooccurrence_type)
 
-    def as_nx_graph(self):
-        # return a bipartite graph
-        return None
 
 
 class CooccurrenceMatrix(BiblioMatrix):
@@ -155,4 +168,9 @@ class CooccurrenceMatrix(BiblioMatrix):
                              numpy.arange(len(result.nodes())),
                              self.rows)),
                          False) # relabel in place
+        return result
+
+    def as_igraph(self):
+        result = igraph.Graph.Weighted_Adjacency(self.matrix.tolist(), mode=igraph.ADJ_MAX)
+        result.vs["name"]=self.rows
         return result
