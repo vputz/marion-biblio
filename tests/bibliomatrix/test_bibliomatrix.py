@@ -1,24 +1,8 @@
-from pytest_bdd import scenario, given, when, then
+from pytest_bdd import scenario, given, then
 from marion_biblio.bibliomatrix import OccurrenceMatrix, CooccurrenceType
 import numpy
-from pyrsistent import pvector
-from marion_biblio.pyrsistent_helpers import pv_remove
 import networkx as nx
-
-@scenario('bibliomatrix.feature', 'test pvector2 deletion')
-def test_pvector2_deletion():
-    pass
-
-
-@given('a pvector')
-def sample_pvector():
-    return pvector(['a', 'b', 'c', 'd'])
-
-
-@then('check it deletes items')
-def check_pvector_deletion(sample_pvector):
-    v = pv_remove(sample_pvector, 'a', 'c')
-    assert v == ['b', 'd']
+from marion_biblio.helpers import pv_remove
 
 
 @scenario('bibliomatrix.feature', 'column-prune a bibliomatrix')

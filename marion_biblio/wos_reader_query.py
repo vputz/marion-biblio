@@ -6,11 +6,12 @@ import json
 import unittest
 from itertools import chain, combinations
 import numpy
+from marion_biblio import wos_pagerank
 
-"""
-Given a "query" in the form of a JSON datastructure, output another JSON
-datastructure (queryResult) with the results.  The "query" is really a template; this is
-a move to creating reports based on bibliometric data
+"""Given a "query" in the form of a JSON datastructure, output
+another JSON datastructure (queryResult) with the results.  The
+"query" is really a template; this is a move to creating reports based
+on bibliometric data
 
 Example query:
 
@@ -18,6 +19,7 @@ Example query:
   'pubs' : { 'queryType' : 'categoricalSummary',
              'queryString' : '(x['journal'] for x in w5.h5.root.papers)' }
 }
+
 """
 
 
@@ -39,14 +41,36 @@ def resultFromQuery(w5, q, context):
             thisResult = paperHexbinQuery(w5, context['paperLocationFunc'])
         elif v['queryType'] == 'countryCollaborationQuery':
             thisResult = countryCollaborationQuery(w5)
-        elif v['queryType'] == 'researchFrontQuery' :
+        elif v['queryType'] == 'researchFrontQuery':
             thisResult = researchFrontQuery(w5)
+        elif v['queryType'] == 'papersPagerankQuery':
+            thisResult = papers_pagerank_query(w5)
+        elif v['queryType'] == 'authorsPagerankQuery':
+            thisResult = authors_pagerank_query(w5)
+
         result[k] = thisResult
     return result
+
 
 def researchFrontQuery(w5):
     result = basic_research_front_from_w5(w5)
     return result
+
+
+def papers_pagerank_query(w5):
+    result = [dict(pagerank=x[0],
+                   doi=x[1]['doi'],
+                   title=x[1]['title'],
+                   author=x[1]['author'])
+              for x in wos_pagerank.papers_pagerank_query(w5)]
+    return result
+
+
+def authors_pagerank_query(w5):
+    result = [dict(pagerank=x[0], author=x[1].decode('utf-8'))
+              for x in wos_pagerank.authors_pagerank_query(w5)]
+    return result
+
 
 # queries return objects, not JSON (the "result" is a JSON string)
 def countryIndex(w5):

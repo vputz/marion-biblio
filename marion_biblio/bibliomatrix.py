@@ -67,17 +67,18 @@ class BiblioMatrix:
                                       cutoff=cutoff)
         return type(self)(o, rows, cols)
 
-    def column_pruned_to_top_fraction_of_occurrences(self, fraction=0.1, max_columns=20):
+    def column_pruned_to_top_fraction_of_occurrences(self, fraction=0.1,
+                                                     max_columns=20):
         v = numpy.sort(self.matrix.sum(0))
         v = v[::-1]
         total = v.sum()
         target_occurrences = total*fraction
-    
+
         acc = 0
         index = 0
         while acc < target_occurrences:
             acc = acc + v[index]
-            index=index+1
+            index = index+1
         index = min(index, max_columns)
         # now prune everything with occurrences less than v[index]
         return self.column_pruned(v[index])
@@ -119,12 +120,13 @@ class OccurrenceMatrix(BiblioMatrix):
     def column_cooccurrence(self, cooccurrence_type=CooccurrenceType.simple):
         lookup = {CooccurrenceType.simple: cooccurrence_matrix,
                   CooccurrenceType.cosine_index: cosine_cooccurrence_matrix,
-                  CooccurrenceType.association_index: association_index_cooccurrence_matrix,
-                  CooccurrenceType.inclusion_index: inclusion_index_cooccurrence_matrix}
+                  CooccurrenceType.association_index:
+                  association_index_cooccurrence_matrix,
+                  CooccurrenceType.inclusion_index:
+                  inclusion_index_cooccurrence_matrix}
         o = lookup[cooccurrence_type](self.matrix)
         return CooccurrenceMatrix(o + o.T, self.columns,
                                   self.columns, cooccurrence_type)
-
 
 
 class CooccurrenceMatrix(BiblioMatrix):
@@ -161,16 +163,36 @@ class CooccurrenceMatrix(BiblioMatrix):
 
     def as_nx_graph(self):
         result = nx.from_numpy_matrix(self.matrix)
-        relabel_dict = dict(zip(numpy.arange(len(result.nodes())),
-                                self.rows))
         nx.relabel_nodes(result,
                          dict(zip(
                              numpy.arange(len(result.nodes())),
                              self.rows)),
-                         False) # relabel in place
+                         False)
         return result
 
     def as_igraph(self):
-        result = igraph.Graph.Weighted_Adjacency(self.matrix.tolist(), mode=igraph.ADJ_MAX)
-        result.vs["name"]=self.rows
+        result = igraph.Graph.Weighted_Adjacency(self.matrix.tolist(),
+                                                 mode=igraph.ADJ_MAX)
+        result.vs["name"] = self.rows
         return result
+
+
+class CitationMatrix(BiblioMatrix):
+    """A citation matrix represents, unlike occurrence or cooccurrence
+    matrices, a directed graph; the rows represent "things which cite",
+    while the columns
+    """
+
+    @property
+    def is_consistent(self):
+        return self.rows == self.columns
+
+    def as_igraph(self):
+        result = igraph.Graph.Weighted_Adjacency(self.matrix.tolist(),
+                                                 igraph.ADJ_DIRECTED)
+        result.vs["name"] = self.rows
+        return result
+
+    def pagerank(self):
+        return sorted(zip(self.as_igraph().pagerank(), self.rows),
+                      key=lambda x: x[0], reverse=True)

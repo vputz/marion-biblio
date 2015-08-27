@@ -2,10 +2,6 @@ Feature: Implement bibliomatrices
   Implement the cooccurrence functionality in a class to simplify
   bookkeeping and testing.
 
-Scenario: test pvector2 deletion
-  Given a pvector
-  Then check it deletes items
-
 Scenario: column-prune a bibliomatrix
   Given a sample occurrence matrix
   And it is column-pruned of small entries

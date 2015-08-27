@@ -47,7 +47,9 @@ def sample_h5_file(request, sample_wos_reader, h5_filename):
 @then('ensure wos/h5 data are correct')
 def check_wos_data(sample_h5_file):
     print([row['title'] for row in sample_h5_file.h5.root.papers])
-    assert len(sample_h5_file.all_authors()) == 14
+    assert len(sample_h5_file.all_authors()) == 9
     assert b'Zaid, I' in sample_h5_file.all_authors()
-    assert b'Non-Gauss Athermal Fluctuations in Bacterial Bath' \
+
+    # assert b'Non-Gauss Athermal Fluctuations in Bacterial Bath' \
+    assert b'Bulk-mediated Surface Diffusion on a Cylinder in the Fast Exchange Limit' \
         in [x['title'] for x in sample_h5_file.papers]

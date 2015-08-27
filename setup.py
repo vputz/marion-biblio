@@ -39,7 +39,8 @@ setup(
         'pytest-bdd==2.14.4',
         'scipy==0.16.0',
         'pandas==0.16.2',
-        'pyrsistent-0.11.0'
+        'pyrsistent==0.11.1',
+        'python-igraph==0.7.1.post6'
     ],
 
     extras_require={},

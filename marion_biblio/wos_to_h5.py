@@ -3,10 +3,12 @@ from marion_biblio.wos_reader import make_pytable, open_wos_tab
 import argparse
 import gevent
 from marion_biblio.progressivegenerators import QueueReporter
+import logging
 
 # strictly speaking argparse isn't important here but including it
 # for when we get all fancy like eliminating abstracts etc
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     parser = argparse.ArgumentParser(
         description="Convert csv files to h5 for WOS")
     parser.add_argument('files', type=str, nargs='+',

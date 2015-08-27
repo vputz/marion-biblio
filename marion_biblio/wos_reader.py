@@ -67,6 +67,7 @@ EF end of file
 import csv
 import fileinput
 from collections import Counter
+import logging
 import itertools
 import re
 from marion_biblio import progressivegenerators
@@ -398,7 +399,9 @@ def make_pytable(w, filename, title="test",
         result['title'] = paper_entry['TI']
         result['journal'] = paper_entry['J9']
         result['pubdate'] = paper_entry['PD']
-        result['pubyear'] = int(paper_entry['PY']) if paper_entry['PY'].isdigit() else -1
+        result['pubyear'] = int(paper_entry['PY']) \
+                            if paper_entry['PY'].isdigit() \
+                               else -1
         result.append()
 
     def append_authors(h5file, paper_entry):
@@ -407,7 +410,9 @@ def make_pytable(w, filename, title="test",
     def is_valid_paper_entry(paper_entry):
         fields = 'DI TI J9 PD PY AU AF C1 AB'.split()
         return False not in [paper_entry[f] is not None for f in fields] \
-            and paper_entry['DI'] != 'DI'
+            and paper_entry['DI'] != 'DI' \
+                                     and paper_entry['DI'] != b'' \
+                                     and paper_entry['DI'] != ''
 
     def append_categories(h5file, paper_entry):
         try:
@@ -457,6 +462,8 @@ def make_pytable(w, filename, title="test",
             append_categories(h5, p)
             append_to_authortable(h5, index, p)
             index = index + 1
+        else:
+            logging.info("No DOI, paper ignored: {0}".format(p['TI']))
 
     flush_tables(h5)
     h5.close()

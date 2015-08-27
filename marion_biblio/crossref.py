@@ -26,3 +26,15 @@ def doi_info_or_none(doi):
                               'affiliation': 'NOT FOUND'}],
                   'container-title': ['NOT FOUND']}
     return result
+
+
+def authors_from_info(i):
+    return [" ".join([a.get('given', ''), a.get('family', '')]).strip()
+            for a in i['author']]
+
+
+def title_from_info(i):
+    if len(i['title']) > 0:
+        return i['title'][0]
+    else:
+        return 'TITLE NOT FOUND'
