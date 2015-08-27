@@ -194,5 +194,6 @@ class CitationMatrix(BiblioMatrix):
         return result
 
     def pagerank(self):
-        return sorted(zip(self.as_igraph().pagerank(), self.rows),
+        ig = self.as_igraph()
+        return sorted(zip(ig.pagerank(weights="weight"), self.rows),
                       key=lambda x: x[0], reverse=True)
